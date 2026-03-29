@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Luffy Boss Game</title>
+  <style>
+    body { margin:0; overflow:hidden; background:#aee; }
+    canvas { display:block; margin:auto; background:#cceeff; }
+    #controls { position:fixed; bottom:10px; width:100%; text-align:center; }
+    button { font-size:18px; padding:10px; margin:5px; }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<div id="controls">
+  <button onclick="moveLeft()">⬅️</button>
+  <button onclick="jump()">⬆️</button>
+  <button onclick="moveRight()">➡️</button>
+  <button onclick="attack()">👊</button>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Images
+let luffyImg = new Image();
+luffyImg.src = "https://i.imgur.com/3WbK9Gx.png";
+
+let kaidoImg = new Image();
+kaidoImg.src = "https://i.imgur.com/7yUvePI.png";
+
+// Player
+let player = {
+  x:100, y:300, w:40, h:40,
+  dy:0, gravity:0.5, jump:-10,
+  grounded:false,
+  health:100,
+  power:false
+};
+
+// Boss
+let boss = {
+  x:600, y:280, w:80, h:80,
+  health:200,
+  dx:-1.5
+};
+
+let keys = {};
+document.addEventListener("keydown", e=>keys[e.key]=true);
+document.addEventListener("keyup", e=>keys[e.key]=false);
+
+// Mobile buttons
+function moveLeft(){ player.x-=20; }
+function moveRight(){ player.x+=20; }
+function jump(){
+  if(player.grounded){
+    player.dy = player.jump;
+    player.grounded=false;
+  }
+}
+function attack(){
+  if(Math.abs(player.x - boss.x) < 60){
+    boss.health -= player.power ? 20 : 10;
+  }
+}
+
+// Platforms
+let platforms = [
+  {x:0,y:350,w:800,h:50}
+];
+
+function update(){
+  if(keys["ArrowRight"]) player.x+=5;
+  if(keys["ArrowLeft"]) player.x-=5;
+
+  if(keys[" "] && player.grounded){
+    player.dy = player.jump;
+    player.grounded=false;
+  }
+
+  player.dy += player.gravity;
+  player.y += player.dy;
+
+  player.grounded=false;
+
+  platforms.forEach(p=>{
+    if(player.x<p.x+p.w && player.x+player.w>p.x &&
+       player.y<p.y+p.h && player.y+player.h>p.y){
+      player.y = p.y - player.h;
+      player.dy=0;
+      player.grounded=true;
+    }
+  });
+
+  // Boss move
+  boss.x += boss.dx;
+  if(boss.x < 400 || boss.x > 750) boss.dx *= -1;
+
+  // Damage player
+  if(Math.abs(player.x - boss.x) < 50){
+    player.health -= 0.2;
+  }
+
+  // Power mode
+  if(player.health < 50){
+    player.power = true;
+  }
+
+  // Game over
+  if(player.health <= 0){
+    alert("Game Over!");
+    location.reload();
+  }
+
+  if(boss.health <= 0){
+    alert("You defeated Kaido!");
+    location.reload();
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,800,400);
+
+  // Player
+  ctx.drawImage(luffyImg, player.x, player.y, player.w, player.h);
+
+  // Boss
+  ctx.drawImage(kaidoImg, boss.x, boss.y, boss.w, boss.h);
+
+  // Ground
+  ctx.fillStyle="green";
+  platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
+
+  // UI
+  ctx.fillStyle="black";
+  ctx.fillText("Health: " + Math.floor(player.health), 10,20);
+  ctx.fillText("Boss HP: " + boss.health, 10,40);
+
+  if(player.power){
+    ctx.fillStyle="red";
+    ctx.fillText("🔥 Gear 2 Activated!", 300,20);
+  }
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+  </html>
